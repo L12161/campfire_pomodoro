@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cozy Campfire Pomodoro</title>
+    <!-- Chart.js for pie chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -79,6 +81,70 @@
             50% { opacity: 1; }
         }
 
+        /* Panel Header with Minimize Button */
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+
+        .panel-header h2 {
+            font-size: 1.8em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            color: #ffd700;
+        }
+
+        .minimize-btn {
+            background: transparent;
+            border: none;
+            color: #ffd700;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .minimize-btn:hover {
+            color: #ffaa00;
+            transform: scale(1.2);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+
+        .fullscreen-btn {
+            background: transparent;
+            border: none;
+            color: #ffd700;
+            width: 35px;
+            height: 35px;
+            cursor: pointer;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+
+        .fullscreen-btn:hover {
+            color: #ffaa00;
+            transform: scale(1.2);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+
+        .panel-header-controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
         /* LEFT SIDE PANEL - Stats and Sessions */
         .left-panel {
             position: relative;
@@ -93,6 +159,17 @@
             max-height: 95vh;
             overflow-y: auto;
             margin-left: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .left-panel.minimized {
+            min-width: 200px;
+            max-width: 200px;
+            padding: 20px;
+        }
+
+        .left-panel.minimized .panel-content {
+            display: none;
         }
 
         /* RIGHT SIDE PANEL - Timer and Controls */
@@ -110,6 +187,43 @@
             max-height: 95vh;
             overflow-y: auto;
             margin-right: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .right-panel.minimized {
+            min-width: 250px;
+            max-width: 250px;
+            padding: 20px;
+        }
+
+        .right-panel.minimized .panel-content {
+            display: none;
+        }
+
+        /* Floating Timer (visible when minimized) */
+        .floating-timer {
+            display: none;
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .right-panel.minimized .floating-timer {
+            display: block;
+        }
+
+        .floating-session-type {
+            display: none;
+            font-size: 1em;
+            color: #ffaa00;
+            text-align: center;
+        }
+
+        .right-panel.minimized .floating-session-type {
+            display: block;
         }
 
         /* Scrollbar styling */
@@ -128,14 +242,6 @@
         .right-panel::-webkit-scrollbar-thumb {
             background: rgba(255, 170, 0, 0.5);
             border-radius: 4px;
-        }
-
-        /* Left Panel Styling */
-        .left-panel h2 {
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            color: #ffd700;
         }
 
         /* Live Users Badge */
@@ -199,6 +305,26 @@
             color: #ffaa00;
             font-weight: bold;
             font-size: 1.1em;
+        }
+
+        /* Pie Chart Container */
+        .chart-container {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chart-container h3 {
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            text-align: center;
+        }
+
+        #sessionChart {
+            max-height: 300px;
         }
 
         /* Session History */
@@ -535,131 +661,162 @@
     <div class="stars" id="stars"></div>
 
     <!-- LEFT PANEL - Stats and Sessions -->
-    <div class="left-panel">
-        <h2>📊 Dashboard</h2>
-        
-        <!-- Live Users -->
-        <div class="live-users-badge">
-            <div class="live-indicator"></div>
-            <span id="liveUsers">🔥 -- people working now</span>
-        </div>
-        
-        <!-- Today's Statistics -->
-        <div class="stats-box">
-            <h3>Today's Stats</h3>
-            <div class="stat-item">
-                <span class="stat-label">Completed Pomodoros</span>
-                <span class="stat-value" id="completedCount">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Total Work Time</span>
-                <span class="stat-value" id="totalWorkTime">0h 0m</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Total Sessions</span>
-                <span class="stat-value" id="totalSessions">0</span>
+    <div class="left-panel" id="leftPanel">
+        <div class="panel-header" onclick="toggleLeftPanel()">
+            <h2>📊 Dashboard</h2>
+            <div class="panel-header-controls">
+                <div class="fullscreen-btn" onclick="event.stopPropagation(); toggleFullscreen()" title="Fullscreen">⛶</div>
+                <div class="minimize-btn" id="leftMinimizeBtn">▼</div>
             </div>
         </div>
 
-        <!-- Recent Sessions -->
-        <div class="session-history-compact">
-            <h3>Recent Sessions</h3>
-            <div id="sessionListCompact"></div>
-        </div>
+        <div class="panel-content">
+            <!-- Live Users -->
+            <div class="live-users-badge">
+                <div class="live-indicator"></div>
+                <span id="liveUsers">🔥 -- people working now</span>
+            </div>
+            
+            <!-- Today's Statistics -->
+            <div class="stats-box">
+                <h3>Today's Stats</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Completed Pomodoros</span>
+                    <span class="stat-value" id="completedCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Work Time</span>
+                    <span class="stat-value" id="totalWorkTime">0h 0m</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Sessions</span>
+                    <span class="stat-value" id="totalSessions">0</span>
+                </div>
+            </div>
 
-        <!-- Full History Toggle -->
-        <button class="history-toggle" onclick="toggleHistory()">📋 View Full History</button>
-        <div class="session-history-content" id="historyContent">
-            <div class="session-history-compact" style="margin-top: 15px;">
-                <h3>All Sessions</h3>
-                <div id="sessionListFull"></div>
-                <button class="clear-history-btn" onclick="clearHistory()">Clear All History</button>
+            <!-- Pie Chart -->
+            <div class="chart-container">
+                <h3>📈 Today's Activity</h3>
+                <canvas id="sessionChart"></canvas>
+            </div>
+
+            <!-- Recent Sessions -->
+            <div class="session-history-compact" style="margin-top: 25px;">
+                <h3>Recent Sessions</h3>
+                <div id="sessionListCompact"></div>
+            </div>
+
+            <!-- Full History Toggle -->
+            <button class="history-toggle" onclick="toggleHistory()">📋 View Full History</button>
+            <div class="session-history-content" id="historyContent">
+                <div class="session-history-compact" style="margin-top: 15px;">
+                    <h3>All Sessions</h3>
+                    <div id="sessionListFull"></div>
+                    <button class="clear-history-btn" onclick="clearHistory()">Clear All History</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- RIGHT PANEL - Timer and Controls -->
-    <div class="right-panel">
-        <h1>🏕️ Campfire Pomodoro 🏕️</h1>
-        
-        <div class="session-type" id="sessionType">Work Session</div>
-        <div class="timer-display" id="timer">25:00</div>
-        
-        <div class="current-session-info" id="currentSessionInfo"></div>
-        <div class="fire-stage-indicator" id="fireStage">🔥 Fire: High</div>
-
-        <!-- Progress bar -->
-        <div class="progress-container">
-            <div class="progress-bar" id="progressBar"></div>
+    <div class="right-panel" id="rightPanel">
+        <div class="panel-header" onclick="toggleRightPanel()">
+            <h1>🏕️ Campfire Pomodoro 🏕️</h1>
+            <div class="minimize-btn" id="rightMinimizeBtn">▼</div>
         </div>
 
-        <!-- Controls -->
-        <div class="controls">
-            <button id="startBtn" onclick="startTimer()">Start</button>
-            <button id="pauseBtn" onclick="pauseTimer()" disabled>Pause</button>
-            <button id="resetBtn" onclick="resetTimer()">Reset</button>
-            <button onclick="skipSession()">Skip</button>
-        </div>
+        <!-- Floating Timer (visible when minimized) -->
+        <div class="floating-timer" id="floatingTimer">25:00</div>
+        <div class="floating-session-type" id="floatingSessionType">Work</div>
 
-        <!-- Audio Controls -->
-        <div class="audio-controls">
-            <div class="setting-item">
-                <label>🎵 Ambient Sound</label>
-                <select id="musicSelect" onchange="changeMusicType()">
-                    <option value="none">None (Silent)</option>
-                    <option value="ambient">Ambient Tones</option>
-                    <option value="fireplace">Cozy Fireplace</option>
-                    <option value="rain">Rain & Thunder</option>
-                    <option value="forest">Forest Birds</option>
-                    <option value="ocean">Ocean Waves</option>
-                    <option value="cafe">Coffee Shop</option>
-                </select>
+        <div class="panel-content">
+            <div class="session-type" id="sessionType">Work Session</div>
+            <div class="timer-display" id="timer">25:00</div>
+            
+            <div class="current-session-info" id="currentSessionInfo"></div>
+            <div class="fire-stage-indicator" id="fireStage">🔥 Fire: High</div>
+
+            <!-- Progress bar -->
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
             </div>
-            <button class="music-toggle" id="musicToggle" onclick="toggleMusic()">🎵 Play Sound</button>
-            <div class="volume-control">
-                <span>🔊</span>
-                <input type="range" id="volumeSlider" min="0" max="100" value="50" onchange="changeVolume(this.value)">
-            </div>
-        </div>
 
-        <!-- Settings Panel -->
-        <button class="settings-toggle" onclick="toggleSettings()">⚙️ Settings</button>
-        <div class="settings-panel">
-            <div class="settings-content" id="settingsContent">
-                <h4 style="color: #ffd700; margin-bottom: 12px; font-size: 0.95em;">Timer Settings</h4>
-                <div class="settings-grid">
-                    <div class="setting-item">
-                        <label>Work Duration (minutes)</label>
-                        <input type="number" id="workDuration" value="25" min="1" max="60">
-                    </div>
-                    <div class="setting-item">
-                        <label>Short Break (minutes)</label>
-                        <input type="number" id="shortBreak" value="5" min="1" max="30">
-                    </div>
-                    <div class="setting-item">
-                        <label>Long Break (minutes)</label>
-                        <input type="number" id="longBreak" value="15" min="1" max="60">
-                    </div>
+            <!-- Controls -->
+            <div class="controls">
+                <button id="startBtn" onclick="startTimer()">Start</button>
+                <button id="pauseBtn" onclick="pauseTimer()" disabled>Pause</button>
+                <button id="resetBtn" onclick="resetTimer()">Reset</button>
+                <button onclick="skipSession()">Skip</button>
+            </div>
+
+            <!-- Audio Controls -->
+            <div class="audio-controls">
+                <div class="setting-item">
+                    <label>🎵 Ambient Sound</label>
+                    <select id="musicSelect" onchange="changeMusicType()">
+                        <option value="none">None (Silent)</option>
+                        <option value="ambient">Ambient Tones</option>
+                        <option value="fireplace">Cozy Fireplace</option>
+                        <option value="rain">Rain & Thunder</option>
+                        <option value="forest">Forest Birds</option>
+                        <option value="ocean">Ocean Waves</option>
+                        <option value="cafe">Coffee Shop</option>
+                    </select>
                 </div>
+                <button class="music-toggle" id="musicToggle" onclick="toggleMusic()">🎵 Play Sound</button>
                 
-                <div class="background-section">
-                    <h4>Background Settings</h4>
+                <div class="setting-item" style="margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="tickingSoundCheckbox" onchange="toggleTickingSound()" style="width: 20px; height: 20px; cursor: pointer;">
+                        <span>⏱️ Enable Ticking Sound</span>
+                    </label>
+                </div>
+
+                <div class="volume-control">
+                    <span>🔊</span>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="50" onchange="changeVolume(this.value)">
+                </div>
+            </div>
+
+            <!-- Settings Panel -->
+            <button class="settings-toggle" onclick="toggleSettings()">⚙️ Settings</button>
+            <div class="settings-panel">
+                <div class="settings-content" id="settingsContent">
+                    <h4 style="color: #ffd700; margin-bottom: 12px; font-size: 0.95em;">Timer Settings</h4>
                     <div class="settings-grid">
                         <div class="setting-item">
-                            <label>Background Opacity</label>
-                            <input type="range" id="opacitySlider" min="0" max="100" value="40" oninput="changeBackgroundOpacity(this.value)">
-                            <div class="opacity-display" id="opacityDisplay">40%</div>
+                            <label>Work Duration (minutes)</label>
+                            <input type="number" id="workDuration" value="25" min="1" max="60">
+                        </div>
+                        <div class="setting-item">
+                            <label>Short Break (minutes)</label>
+                            <input type="number" id="shortBreak" value="5" min="1" max="30">
+                        </div>
+                        <div class="setting-item">
+                            <label>Long Break (minutes)</label>
+                            <input type="number" id="longBreak" value="15" min="1" max="60">
                         </div>
                     </div>
                     
-                    <div class="setting-item" style="margin-top: 12px;">
-                        <label>Change Background Image</label>
-                        <input type="file" id="backgroundUpload" accept="image/*,video/*,.gif" onchange="changeBackgroundImage(this)">
-                        <button class="reset-background-btn" onclick="resetToDefaultBackground()">Reset to Campfire</button>
+                    <div class="background-section">
+                        <h4>Background Settings</h4>
+                        <div class="settings-grid">
+                            <div class="setting-item">
+                                <label>Background Opacity</label>
+                                <input type="range" id="opacitySlider" min="0" max="100" value="40" oninput="changeBackgroundOpacity(this.value)">
+                                <div class="opacity-display" id="opacityDisplay">40%</div>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item" style="margin-top: 12px;">
+                            <label>Change Background Image</label>
+                            <input type="file" id="backgroundUpload" accept="image/*,video/*,.gif" onchange="changeBackgroundImage(this)">
+                            <button class="reset-background-btn" onclick="resetToDefaultBackground()">Reset to Campfire</button>
+                        </div>
                     </div>
+                    
+                    <button onclick="applySettings()" style="margin-top: 12px; width: 100%;">Apply Settings</button>
                 </div>
-                
-                <button onclick="applySettings()" style="margin-top: 12px; width: 100%;">Apply Settings</button>
             </div>
         </div>
     </div>
@@ -672,16 +829,15 @@
         // ============================================
         // FIREBASE CONFIGURATION
         // ============================================
-        // REPLACE THIS WITH YOUR FIREBASE CONFIG
-        // Get this from Firebase Console > Project Settings > Your Apps
         const firebaseConfig = {
-          apiKey: "AIzaSyCe7R4Df8Ey-SL_mt0LeQPI1xz_XOFV4EE",
-          authDomain: "pomodoro-timer-da53e.firebaseapp.com",
-          databaseURL: "https://pomodoro-timer-da53e-default-rtdb.firebaseio.com",
-          projectId: "pomodoro-timer-da53e",
-          storageBucket: "pomodoro-timer-da53e.firebasestorage.app",
-          messagingSenderId: "273171317170",
-          appId: "1:273171317170:web:944dd0a814289d45c124ab"
+            apiKey: "AIzaSyBnokDnAfe4FMsmpMwgENOmpzWWNyG3rB8",
+            authDomain: "campfire-pomodoro.firebaseapp.com",
+            databaseURL: "https://campfire-pomodoro-default-rtdb.firebaseio.com",
+            projectId: "campfire-pomodoro",
+            storageBucket: "campfire-pomodoro.firebasestorage.app",
+            messagingSenderId: "1003491566904",
+            appId: "1:1003491566904:web:8f9718793a7ebf7104cdcd",
+            measurementId: "G-TRQ2V66N2N"
         };
 
         // Initialize Firebase
@@ -693,25 +849,17 @@
             firebase.initializeApp(firebaseConfig);
             database = firebase.database();
             
-            // Reference to active users
             const activeUsersRef = database.ref('activeUsers');
-            
-            // Get user's unique connection reference
             myConnectionRef = database.ref('activeUsers').push();
             
-            // Monitor connection state
             connectedRef = database.ref('.info/connected');
             connectedRef.on('value', (snapshot) => {
                 if (snapshot.val() === true) {
-                    // User is connected
                     myConnectionRef.set(true);
-                    
-                    // Remove user when they disconnect
                     myConnectionRef.onDisconnect().remove();
                 }
             });
             
-            // Listen for changes in active users count
             activeUsersRef.on('value', (snapshot) => {
                 const count = snapshot.numChildren();
                 document.getElementById('liveUsers').textContent = `🔥 ${count} ${count === 1 ? 'person' : 'people'} working now`;
@@ -721,6 +869,105 @@
         } catch (error) {
             console.error('Firebase initialization error:', error);
             document.getElementById('liveUsers').textContent = '🔥 Firebase not configured';
+        }
+
+        // ============================================
+        // MINIMIZE PANEL FUNCTIONS
+        // ============================================
+        function toggleLeftPanel() {
+            const panel = document.getElementById('leftPanel');
+            const btn = document.getElementById('leftMinimizeBtn');
+            panel.classList.toggle('minimized');
+            btn.textContent = panel.classList.contains('minimized') ? '▲' : '▼';
+        }
+
+        function toggleRightPanel() {
+            const panel = document.getElementById('rightPanel');
+            const btn = document.getElementById('rightMinimizeBtn');
+            panel.classList.toggle('minimized');
+            btn.textContent = panel.classList.contains('minimized') ? '▲' : '▼';
+            updateFloatingTimer();
+        }
+
+        // ============================================
+        // FULLSCREEN FUNCTION
+        // ============================================
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Fullscreen error:', err);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // ============================================
+        // TICKING SOUND
+        // ============================================
+        let tickingEnabled = false;
+        let tickingOscillator = null;
+        let tickingGain = null;
+        let tickingInterval = null;
+
+        function toggleTickingSound() {
+            tickingEnabled = document.getElementById('tickingSoundCheckbox').checked;
+            
+            if (tickingEnabled && isRunning) {
+                startTickingSound();
+            } else {
+                stopTickingSound();
+            }
+            
+            // Save preference
+            localStorage.setItem('tickingEnabled', tickingEnabled);
+        }
+
+        function startTickingSound() {
+            if (!tickingEnabled || !isRunning) return;
+            
+            stopTickingSound(); // Clean up any existing ticking
+            
+            // Create ticking sound every second
+            tickingInterval = setInterval(() => {
+                if (!tickingEnabled || !isRunning) {
+                    stopTickingSound();
+                    return;
+                }
+                
+                const tickContext = new (window.AudioContext || window.webkitAudioContext)();
+                const tickOsc = tickContext.createOscillator();
+                const tickGain = tickContext.createGain();
+                
+                tickOsc.frequency.setValueAtTime(800, tickContext.currentTime);
+                tickOsc.type = 'sine';
+                
+                tickGain.gain.setValueAtTime(0.1, tickContext.currentTime);
+                tickGain.gain.exponentialRampToValueAtTime(0.01, tickContext.currentTime + 0.05);
+                
+                tickOsc.connect(tickGain);
+                tickGain.connect(tickContext.destination);
+                
+                tickOsc.start(tickContext.currentTime);
+                tickOsc.stop(tickContext.currentTime + 0.05);
+            }, 1000);
+        }
+
+        function stopTickingSound() {
+            if (tickingInterval) {
+                clearInterval(tickingInterval);
+                tickingInterval = null;
+            }
+        }
+
+        function updateFloatingTimer() {
+            document.getElementById('floatingTimer').textContent = formatTime(timeLeft);
+            const sessionTypeText = document.getElementById('sessionType').textContent;
+            const shortType = sessionTypeText.includes('Work') ? 'Work' : 
+                             sessionTypeText.includes('Long') ? 'Long Break' : 'Break';
+            document.getElementById('floatingSessionType').textContent = shortType;
         }
 
         // ============================================
@@ -751,6 +998,141 @@
         };
 
         // ============================================
+        // PIE CHART
+        // ============================================
+        let sessionChart = null;
+
+        function createPieChart() {
+            const ctx = document.getElementById('sessionChart').getContext('2d');
+            
+            if (sessionChart) {
+                sessionChart.destroy();
+            }
+
+            const hourlyData = calculateHourlyActivity();
+            
+            sessionChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: hourlyData.labels,
+                    datasets: [{
+                        data: hourlyData.data,
+                        backgroundColor: hourlyData.colors,
+                        borderColor: 'rgba(255, 255, 255, 0.3)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#fff',
+                                font: {
+                                    family: 'Courier New',
+                                    size: 11
+                                },
+                                padding: 10,
+                                boxWidth: 12
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + ' min';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function calculateHourlyActivity() {
+            const today = new Date().toDateString();
+            const todaySessions = sessions.filter(s => 
+                new Date(s.startTime).toDateString() === today
+            );
+
+            // Create 24-hour activity map
+            const hourlyActivity = new Array(24).fill(0);
+            
+            todaySessions.forEach(session => {
+                const startHour = new Date(session.startTime).getHours();
+                const endHour = new Date(session.endTime).getHours();
+                const duration = session.duration;
+                
+                if (startHour === endHour) {
+                    hourlyActivity[startHour] += duration;
+                } else {
+                    // Split duration across hours
+                    const startMinute = new Date(session.startTime).getMinutes();
+                    const endMinute = new Date(session.endTime).getMinutes();
+                    
+                    hourlyActivity[startHour] += 60 - startMinute;
+                    hourlyActivity[endHour] += endMinute;
+                    
+                    for (let h = startHour + 1; h < endHour; h++) {
+                        hourlyActivity[h] += 60;
+                    }
+                }
+            });
+
+            // Group into time blocks for better visualization
+            const labels = [];
+            const data = [];
+            const colors = [];
+
+            // Define time blocks (morning, afternoon, evening, night)
+            const blocks = [
+                { name: '🌅 Morning (6-12)', start: 6, end: 12, color: 'rgba(255, 193, 7, 0.7)' },
+                { name: '☀️ Afternoon (12-18)', start: 12, end: 18, color: 'rgba(255, 152, 0, 0.7)' },
+                { name: '🌆 Evening (18-22)', start: 18, end: 22, color: 'rgba(233, 30, 99, 0.7)' },
+                { name: '🌙 Night (22-6)', start: 22, end: 24, color: 'rgba(103, 58, 183, 0.7)' }
+            ];
+
+            blocks.forEach(block => {
+                let totalMinutes = 0;
+                for (let h = block.start; h < block.end; h++) {
+                    totalMinutes += hourlyActivity[h];
+                }
+                if (block.name.includes('Night')) {
+                    for (let h = 0; h < 6; h++) {
+                        totalMinutes += hourlyActivity[h];
+                    }
+                }
+                
+                if (totalMinutes > 0) {
+                    labels.push(block.name);
+                    data.push(totalMinutes);
+                    colors.push(block.color);
+                }
+            });
+
+            // Calculate idle time
+            const totalActiveMinutes = data.reduce((a, b) => a + b, 0);
+            const totalMinutesInDay = 24 * 60;
+            const idleMinutes = totalMinutesInDay - totalActiveMinutes;
+
+            if (idleMinutes > 0) {
+                labels.push('💤 Idle Time');
+                data.push(idleMinutes);
+                colors.push('rgba(100, 100, 100, 0.5)');
+            }
+
+            // If no activity, show empty state
+            if (labels.length === 0) {
+                labels.push('No Activity Today');
+                data.push(1);
+                colors.push('rgba(100, 100, 100, 0.3)');
+            }
+
+            return { labels, data, colors };
+        }
+
+        // ============================================
         // AUDIO SETUP - MULTIPLE MUSIC OPTIONS
         // ============================================
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -758,7 +1140,6 @@
         let isMusicPlaying = false;
         let audioNodes = [];
 
-        // Ambient drone music
         function createAmbientSound() {
             stopAllAudio();
             const frequencies = [220, 275, 330, 440];
@@ -781,11 +1162,9 @@
             });
         }
 
-        // Fireplace crackling sound
         function createFireplaceSound() {
             stopAllAudio();
             
-            // Low rumble
             const rumbleOsc = audioContext.createOscillator();
             const rumbleGain = audioContext.createGain();
             rumbleOsc.type = 'sawtooth';
@@ -795,7 +1174,6 @@
             rumbleGain.connect(audioContext.destination);
             rumbleOsc.start();
             
-            // Crackling (noise)
             const bufferSize = audioContext.sampleRate * 2;
             const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
             const output = noiseBuffer.getChannelData(0);
@@ -825,7 +1203,6 @@
             );
         }
 
-        // Rain sound
         function createRainSound() {
             stopAllAudio();
             
@@ -855,11 +1232,9 @@
             audioNodes.push({ oscillator: whiteNoise, gainNode: gainNode, type: 'rain' });
         }
 
-        // Forest birds
         function createForestSound() {
             stopAllAudio();
             
-            // Base forest ambience
             const baseFreqs = [300, 450, 600];
             baseFreqs.forEach(freq => {
                 const osc = audioContext.createOscillator();
@@ -874,11 +1249,9 @@
             });
         }
 
-        // Ocean waves
         function createOceanSound() {
             stopAllAudio();
             
-            // Create wave-like oscillation
             const osc = audioContext.createOscillator();
             const gain = audioContext.createGain();
             const lfo = audioContext.createOscillator();
@@ -887,7 +1260,7 @@
             osc.type = 'sine';
             osc.frequency.setValueAtTime(100, audioContext.currentTime);
             
-            lfo.frequency.setValueAtTime(0.2, audioContext.currentTime); // Slow wave
+            lfo.frequency.setValueAtTime(0.2, audioContext.currentTime);
             lfoGain.gain.setValueAtTime(30, audioContext.currentTime);
             
             lfo.connect(lfoGain);
@@ -904,11 +1277,9 @@
             audioNodes.push({ oscillator: osc, gainNode: gain, type: 'ocean' });
         }
 
-        // Coffee shop ambience
         function createCafeSound() {
             stopAllAudio();
             
-            // Create brown noise (warmer than white noise)
             const bufferSize = audioContext.sampleRate * 2;
             const noiseBuffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
             const output = noiseBuffer.getChannelData(0);
@@ -980,7 +1351,6 @@
                 return;
             }
             
-            // Create appropriate sound
             switch(currentMusicType) {
                 case 'ambient': createAmbientSound(); break;
                 case 'fireplace': createFireplaceSound(); break;
@@ -990,7 +1360,6 @@
                 case 'cafe': createCafeSound(); break;
             }
             
-            // Fade in
             const volume = document.getElementById('volumeSlider').value / 100;
             audioNodes.forEach((node, index) => {
                 const targetVolume = currentMusicType === 'ambient' 
@@ -1025,7 +1394,6 @@
             }
         }
 
-        // Notification sound
         function createNotificationSound() {
             const notificationAudioContext = new (window.AudioContext || window.webkitAudioContext)();
             
@@ -1137,6 +1505,7 @@
             localStorage.setItem('pomodoroSessions', JSON.stringify(sessions));
             updateStats();
             displayRecentSessions();
+            createPieChart();
         }
 
         function displayRecentSessions() {
@@ -1214,6 +1583,7 @@
                 updateStats();
                 displayRecentSessions();
                 displayFullHistory();
+                createPieChart();
             }
         }
 
@@ -1314,6 +1684,7 @@
             document.getElementById('progressBar').style.width = progressPercentage + '%';
             updateCampfireGif();
             updateCurrentSessionInfo();
+            updateFloatingTimer();
         }
 
         // ============================================
@@ -1325,6 +1696,11 @@
                 currentSessionStartTime = new Date();
                 document.getElementById('startBtn').disabled = true;
                 document.getElementById('pauseBtn').disabled = false;
+                
+                // Start ticking sound if enabled
+                if (tickingEnabled) {
+                    startTickingSound();
+                }
                 
                 timerInterval = setInterval(() => {
                     timeLeft--;
@@ -1343,6 +1719,9 @@
                 clearInterval(timerInterval);
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('pauseBtn').disabled = true;
+                
+                // Stop ticking sound
+                stopTickingSound();
                 
                 if (currentSessionStartTime) {
                     const sessionType = document.getElementById('sessionType').textContent;
@@ -1453,15 +1832,22 @@
                 changeBackgroundOpacity(savedOpacity);
             }
             
+            // Load ticking sound preference
+            const savedTicking = localStorage.getItem('tickingEnabled');
+            if (savedTicking === 'true') {
+                tickingEnabled = true;
+                document.getElementById('tickingSoundCheckbox').checked = true;
+            }
+            
             updateStats();
             displayRecentSessions();
+            createPieChart();
             updateDisplay();
         };
 
         window.addEventListener('beforeunload', () => {
             localStorage.setItem('pomodoroSessions', JSON.stringify(sessions));
             
-            // Clean up Firebase connection
             if (myConnectionRef) {
                 myConnectionRef.remove();
             }
