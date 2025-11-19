@@ -88,6 +88,8 @@
             align-items: center;
             margin-bottom: 20px;
             cursor: pointer;
+            flex-wrap: nowrap;  /* Add this */
+            min-width: 100%;    /* Add this */
         }
 
         .panel-header h2 {
@@ -163,9 +165,10 @@
         }
 
         .left-panel.minimized {
-            min-width: 200px;
-            max-width: 200px;
+            min-width: 250px;  /* Increase from 200px */
+            max-width: 250px;  /* Increase from 200px */
             padding: 20px;
+            overflow: visible;  /* Add this */
         }
 
         .left-panel.minimized .panel-content {
