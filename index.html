@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cozy Campfire Pomodoro</title>
-    <!-- Chart.js for pie chart -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -88,8 +86,6 @@
             align-items: center;
             margin-bottom: 20px;
             cursor: pointer;
-            flex-wrap: nowrap;  /* Add this */
-            min-width: 100%;    /* Add this */
         }
 
         .panel-header h2 {
@@ -165,10 +161,9 @@
         }
 
         .left-panel.minimized {
-            min-width: 250px;  /* Increase from 200px */
-            max-width: 250px;  /* Increase from 200px */
+            min-width: 200px;
+            max-width: 200px;
             padding: 20px;
-            overflow: visible;  /* Add this */
         }
 
         .left-panel.minimized .panel-content {
@@ -247,32 +242,6 @@
             border-radius: 4px;
         }
 
-        /* Live Users Badge */
-        .live-users-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 15px;
-            background: rgba(0, 255, 136, 0.2);
-            border: 2px solid rgba(0, 255, 136, 0.4);
-            border-radius: 20px;
-            margin-bottom: 20px;
-            font-size: 0.95em;
-        }
-
-        .live-indicator {
-            width: 10px;
-            height: 10px;
-            background: #00ff88;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(1.2); }
-        }
-
         /* Statistics Box */
         .stats-box {
             margin-bottom: 25px;
@@ -308,26 +277,6 @@
             color: #ffaa00;
             font-weight: bold;
             font-size: 1.1em;
-        }
-
-        /* Pie Chart Container */
-        .chart-container {
-            margin-top: 25px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .chart-container h3 {
-            color: #ffd700;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            text-align: center;
-        }
-
-        #sessionChart {
-            max-height: 300px;
         }
 
         /* Session History */
@@ -632,6 +581,138 @@
             width: 100%;
         }
 
+        /* Analytics Modal */
+        .analytics-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .analytics-modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .analytics-content {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            border-radius: 20px;
+            padding: 30px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .analytics-close {
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 2em;
+            color: #ffd700;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            padding: 0;
+            width: 40px;
+            height: 40px;
+        }
+
+        .analytics-close:hover {
+            color: #ff6b00;
+            transform: scale(1.2);
+        }
+
+        .analytics-header {
+            color: #ffd700;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .day-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .day-btn {
+            padding: 10px 20px;
+            background: rgba(255, 215, 0, 0.2);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            color: #ffd700;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+
+        .day-btn:hover {
+            background: rgba(255, 215, 0, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .day-btn.active {
+            background: rgba(255, 215, 0, 0.5);
+            border-color: #ffd700;
+        }
+
+        #hourlyChart {
+            margin-top: 20px;
+            max-height: 400px;
+        }
+
+        .analytics-summary {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+
+        .summary-card {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .summary-value {
+            font-size: 2em;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .summary-label {
+            font-size: 0.9em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .analytics-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .analytics-content::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .analytics-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 170, 0, 0.5);
+            border-radius: 4px;
+        }
+
         /* Responsive for smaller screens */
         @media (max-width: 1024px) {
             body {
@@ -674,12 +755,6 @@
         </div>
 
         <div class="panel-content">
-            <!-- Live Users -->
-            <div class="live-users-badge">
-                <div class="live-indicator"></div>
-                <span id="liveUsers">🔥 -- people working now</span>
-            </div>
-            
             <!-- Today's Statistics -->
             <div class="stats-box">
                 <h3>Today's Stats</h3>
@@ -697,12 +772,6 @@
                 </div>
             </div>
 
-            <!-- Pie Chart -->
-            <div class="chart-container">
-                <h3>📈 Today's Activity</h3>
-                <canvas id="sessionChart"></canvas>
-            </div>
-
             <!-- Recent Sessions -->
             <div class="session-history-compact" style="margin-top: 25px;">
                 <h3>Recent Sessions</h3>
@@ -718,6 +787,9 @@
                     <button class="clear-history-btn" onclick="clearHistory()">Clear All History</button>
                 </div>
             </div>
+
+            <!-- Daily Analytics Button -->
+            <button class="history-toggle" onclick="openDailyAnalytics()">📈 Daily Analytics</button>
         </div>
     </div>
 
@@ -824,56 +896,25 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Analytics Modal -->
+    <div id="analyticsModal" class="analytics-modal">
+        <div class="analytics-content">
+            <button class="analytics-close" onclick="closeAnalytics()">×</button>
+            <h2 class="analytics-header">📈 Daily Analytics</h2>
+            
+            <div class="day-selector" id="daySelector">
+                <!-- Day buttons will be generated here -->
+            </div>
+            
+            <div class="analytics-summary" id="analyticsSummary">
+                <!-- Summary cards will be generated here -->
+            </div>
+            
+            <canvas id="hourlyChart"></canvas>
+        </div>
+    </div>
 
     <script>
-        // ============================================
-        // FIREBASE CONFIGURATION
-        // ============================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyBnokDnAfe4FMsmpMwgENOmpzWWNyG3rB8",
-            authDomain: "campfire-pomodoro.firebaseapp.com",
-            databaseURL: "https://campfire-pomodoro-default-rtdb.firebaseio.com",
-            projectId: "campfire-pomodoro",
-            storageBucket: "campfire-pomodoro.firebasestorage.app",
-            messagingSenderId: "1003491566904",
-            appId: "1:1003491566904:web:8f9718793a7ebf7104cdcd",
-            measurementId: "G-TRQ2V66N2N"
-        };
-
-        // Initialize Firebase
-        let database;
-        let myConnectionRef;
-        let connectedRef;
-
-        try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-            
-            const activeUsersRef = database.ref('activeUsers');
-            myConnectionRef = database.ref('activeUsers').push();
-            
-            connectedRef = database.ref('.info/connected');
-            connectedRef.on('value', (snapshot) => {
-                if (snapshot.val() === true) {
-                    myConnectionRef.set(true);
-                    myConnectionRef.onDisconnect().remove();
-                }
-            });
-            
-            activeUsersRef.on('value', (snapshot) => {
-                const count = snapshot.numChildren();
-                document.getElementById('liveUsers').textContent = `🔥 ${count} ${count === 1 ? 'person' : 'people'} working now`;
-            });
-            
-            console.log('Firebase connected successfully!');
-        } catch (error) {
-            console.error('Firebase initialization error:', error);
-            document.getElementById('liveUsers').textContent = '🔥 Firebase not configured';
-        }
-
         // ============================================
         // MINIMIZE PANEL FUNCTIONS
         // ============================================
@@ -965,6 +1006,220 @@
             }
         }
 
+        // ============================================
+        // DAILY ANALYTICS
+        // ============================================
+        let selectedAnalyticsDate = null;
+        let hourlyChart = null;
+
+        function openDailyAnalytics() {
+            document.getElementById('analyticsModal').classList.add('show');
+            generateDaySelector();
+            
+            // Default to today
+            const today = new Date().toDateString();
+            selectedAnalyticsDate = today;
+            displayDayAnalytics(today);
+        }
+
+        function closeAnalytics() {
+            document.getElementById('analyticsModal').classList.remove('show');
+        }
+
+        function generateDaySelector() {
+            const daySelector = document.getElementById('daySelector');
+            
+            // Get unique dates from sessions
+            const uniqueDates = [...new Set(sessions.map(s => 
+                new Date(s.startTime).toDateString()
+            ))].sort((a, b) => new Date(b) - new Date(a));
+            
+            if (uniqueDates.length === 0) {
+                daySelector.innerHTML = '<div style="color: #888;">No sessions recorded yet</div>';
+                return;
+            }
+            
+            let html = '';
+            uniqueDates.slice(0, 10).forEach(dateStr => {
+                const date = new Date(dateStr);
+                const label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const isToday = dateStr === new Date().toDateString();
+                const activeClass = dateStr === selectedAnalyticsDate ? 'active' : '';
+                
+                html += `<button class="day-btn ${activeClass}" onclick="selectDay('${dateStr}')">
+                    ${isToday ? 'Today' : label}
+                </button>`;
+            });
+            
+            daySelector.innerHTML = html;
+        }
+
+        function selectDay(dateStr) {
+            selectedAnalyticsDate = dateStr;
+            
+            // Update active button
+            document.querySelectorAll('.day-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            displayDayAnalytics(dateStr);
+        }
+
+        function displayDayAnalytics(dateStr) {
+            const daySessions = sessions.filter(s => 
+                new Date(s.startTime).toDateString() === dateStr
+            );
+            
+            // Calculate hourly data
+            const hourlyMinutes = new Array(24).fill(0);
+            
+            daySessions.forEach(session => {
+                const startDate = new Date(session.startTime);
+                const endDate = new Date(session.endTime);
+                const startHour = startDate.getHours();
+                const endHour = endDate.getHours();
+                const startMinute = startDate.getMinutes();
+                const endMinute = endDate.getMinutes();
+                
+                if (startHour === endHour) {
+                    // Session within same hour
+                    hourlyMinutes[startHour] += session.duration;
+                } else {
+                    // Session spans multiple hours
+                    hourlyMinutes[startHour] += 60 - startMinute;
+                    hourlyMinutes[endHour] += endMinute;
+                    
+                    for (let h = startHour + 1; h < endHour; h++) {
+                        hourlyMinutes[h] += 60;
+                    }
+                }
+            });
+            
+            // Create bar chart
+            createHourlyChart(hourlyMinutes);
+            
+            // Update summary
+            updateAnalyticsSummary(daySessions, hourlyMinutes);
+        }
+
+        function createHourlyChart(hourlyMinutes) {
+            const ctx = document.getElementById('hourlyChart').getContext('2d');
+            
+            if (hourlyChart) {
+                hourlyChart.destroy();
+            }
+            
+            const hours = Array.from({length: 24}, (_, i) => {
+                const h = i % 12 || 12;
+                const ampm = i < 12 ? 'AM' : 'PM';
+                return `${h}${ampm}`;
+            });
+            
+            hourlyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: 'Minutes Worked',
+                        data: hourlyMinutes,
+                        backgroundColor: 'rgba(255, 170, 0, 0.7)',
+                        borderColor: 'rgba(255, 215, 0, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Minutes',
+                                color: '#ffd700',
+                                font: {
+                                    family: 'Courier New',
+                                    size: 14
+                                }
+                            },
+                            ticks: {
+                                color: '#fff',
+                                font: {
+                                    family: 'Courier New'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Hour of Day',
+                                color: '#ffd700',
+                                font: {
+                                    family: 'Courier New',
+                                    size: 14
+                                }
+                            },
+                            ticks: {
+                                color: '#fff',
+                                font: {
+                                    family: 'Courier New',
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#fff',
+                                font: {
+                                    family: 'Courier New'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateAnalyticsSummary(daySessions, hourlyMinutes) {
+            const totalMinutes = hourlyMinutes.reduce((a, b) => a + b, 0);
+            const totalSessions = daySessions.length;
+            const workSessions = daySessions.filter(s => s.type === 'Work Session').length;
+            const peakHour = hourlyMinutes.indexOf(Math.max(...hourlyMinutes));
+            
+            const peakHourLabel = peakHour % 12 || 12;
+            const peakHourAMPM = peakHour < 12 ? 'AM' : 'PM';
+            
+            const html = `
+                <div class="summary-card">
+                    <div class="summary-value">${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m</div>
+                    <div class="summary-label">Total Time</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${totalSessions}</div>
+                    <div class="summary-label">Total Sessions</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${workSessions}</div>
+                    <div class="summary-label">Work Sessions</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value">${peakHourLabel}${peakHourAMPM}</div>
+                    <div class="summary-label">Peak Hour</div>
+                </div>
+            `;
+            
+            document.getElementById('analyticsSummary').innerHTML = html;
+        }
+
         function updateFloatingTimer() {
             document.getElementById('floatingTimer').textContent = formatTime(timeLeft);
             const sessionTypeText = document.getElementById('sessionType').textContent;
@@ -999,141 +1254,6 @@
             low: 'low_fire.gif',
             none: 'no_fire.gif'
         };
-
-        // ============================================
-        // PIE CHART
-        // ============================================
-        let sessionChart = null;
-
-        function createPieChart() {
-            const ctx = document.getElementById('sessionChart').getContext('2d');
-            
-            if (sessionChart) {
-                sessionChart.destroy();
-            }
-
-            const hourlyData = calculateHourlyActivity();
-            
-            sessionChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: hourlyData.labels,
-                    datasets: [{
-                        data: hourlyData.data,
-                        backgroundColor: hourlyData.colors,
-                        borderColor: 'rgba(255, 255, 255, 0.3)',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                color: '#fff',
-                                font: {
-                                    family: 'Courier New',
-                                    size: 11
-                                },
-                                padding: 10,
-                                boxWidth: 12
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.label + ': ' + context.parsed + ' min';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function calculateHourlyActivity() {
-            const today = new Date().toDateString();
-            const todaySessions = sessions.filter(s => 
-                new Date(s.startTime).toDateString() === today
-            );
-
-            // Create 24-hour activity map
-            const hourlyActivity = new Array(24).fill(0);
-            
-            todaySessions.forEach(session => {
-                const startHour = new Date(session.startTime).getHours();
-                const endHour = new Date(session.endTime).getHours();
-                const duration = session.duration;
-                
-                if (startHour === endHour) {
-                    hourlyActivity[startHour] += duration;
-                } else {
-                    // Split duration across hours
-                    const startMinute = new Date(session.startTime).getMinutes();
-                    const endMinute = new Date(session.endTime).getMinutes();
-                    
-                    hourlyActivity[startHour] += 60 - startMinute;
-                    hourlyActivity[endHour] += endMinute;
-                    
-                    for (let h = startHour + 1; h < endHour; h++) {
-                        hourlyActivity[h] += 60;
-                    }
-                }
-            });
-
-            // Group into time blocks for better visualization
-            const labels = [];
-            const data = [];
-            const colors = [];
-
-            // Define time blocks (morning, afternoon, evening, night)
-            const blocks = [
-                { name: '🌅 Morning (6-12)', start: 6, end: 12, color: 'rgba(255, 193, 7, 0.7)' },
-                { name: '☀️ Afternoon (12-18)', start: 12, end: 18, color: 'rgba(255, 152, 0, 0.7)' },
-                { name: '🌆 Evening (18-22)', start: 18, end: 22, color: 'rgba(233, 30, 99, 0.7)' },
-                { name: '🌙 Night (22-6)', start: 22, end: 24, color: 'rgba(103, 58, 183, 0.7)' }
-            ];
-
-            blocks.forEach(block => {
-                let totalMinutes = 0;
-                for (let h = block.start; h < block.end; h++) {
-                    totalMinutes += hourlyActivity[h];
-                }
-                if (block.name.includes('Night')) {
-                    for (let h = 0; h < 6; h++) {
-                        totalMinutes += hourlyActivity[h];
-                    }
-                }
-                
-                if (totalMinutes > 0) {
-                    labels.push(block.name);
-                    data.push(totalMinutes);
-                    colors.push(block.color);
-                }
-            });
-
-            // Calculate idle time
-            const totalActiveMinutes = data.reduce((a, b) => a + b, 0);
-            const totalMinutesInDay = 24 * 60;
-            const idleMinutes = totalMinutesInDay - totalActiveMinutes;
-
-            if (idleMinutes > 0) {
-                labels.push('💤 Idle Time');
-                data.push(idleMinutes);
-                colors.push('rgba(100, 100, 100, 0.5)');
-            }
-
-            // If no activity, show empty state
-            if (labels.length === 0) {
-                labels.push('No Activity Today');
-                data.push(1);
-                colors.push('rgba(100, 100, 100, 0.3)');
-            }
-
-            return { labels, data, colors };
-        }
 
         // ============================================
         // AUDIO SETUP - MULTIPLE MUSIC OPTIONS
@@ -1508,7 +1628,6 @@
             localStorage.setItem('pomodoroSessions', JSON.stringify(sessions));
             updateStats();
             displayRecentSessions();
-            createPieChart();
         }
 
         function displayRecentSessions() {
@@ -1586,7 +1705,6 @@
                 updateStats();
                 displayRecentSessions();
                 displayFullHistory();
-                createPieChart();
             }
         }
 
@@ -1844,17 +1962,20 @@
             
             updateStats();
             displayRecentSessions();
-            createPieChart();
             updateDisplay();
         };
 
         window.addEventListener('beforeunload', () => {
             localStorage.setItem('pomodoroSessions', JSON.stringify(sessions));
-            
-            if (myConnectionRef) {
-                myConnectionRef.remove();
-            }
         });
+
+        // Close analytics modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('analyticsModal');
+            if (event.target === modal) {
+                closeAnalytics();
+            }
+        }
     </script>
 </body>
 </html>
