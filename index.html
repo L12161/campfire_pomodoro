@@ -163,9 +163,10 @@
         }
 
         .left-panel.minimized {
-            min-width: 200px;
-            max-width: 200px;
+            min-width: 280px;
+            max-width: 280px;
             padding: 20px;
+            overflow: visible;
         }
 
         .left-panel.minimized .panel-content {
@@ -838,6 +839,9 @@
                         <option value="forest">Forest Birds</option>
                         <option value="ocean">Ocean Waves</option>
                         <option value="cafe">Coffee Shop</option>
+                        <option value="track1">Custom Track 1</option>
+                        <option value="track2">Custom Track 2</option>
+                        <option value="track3">Custom Track 3</option>
                     </select>
                 </div>
                 <button class="music-toggle" id="musicToggle" onclick="toggleMusic()">🎵 Play Sound</button>
@@ -877,6 +881,22 @@
                     
                     <div class="background-section">
                         <h4>Background Settings</h4>
+                        
+                        <div class="setting-item" style="margin-bottom: 12px;">
+                            <label>Select Wallpaper</label>
+                            <select id="wallpaperSelect" onchange="changeWallpaper()">
+                                <option value="campfire">Default Campfire</option>
+                                <option value="wallpaper1">Wallpaper 1</option>
+                                <option value="wallpaper2">Wallpaper 2</option>
+                                <option value="wallpaper3">Wallpaper 3</option>
+                                <option value="wallpaper4">Wallpaper 4</option>
+                                <option value="wallpaper5">Wallpaper 5</option>
+                            </select>
+                            <div style="font-size: 0.75em; color: #888; margin-top: 5px;">
+                                Add wallpapers to /wallpapers/ folder in your GitHub repo
+                            </div>
+                        </div>
+                        
                         <div class="settings-grid">
                             <div class="setting-item">
                                 <label>Background Opacity</label>
@@ -884,11 +904,13 @@
                                 <div class="opacity-display" id="opacityDisplay">40%</div>
                             </div>
                         </div>
-                        
-                        <div class="setting-item" style="margin-top: 12px;">
-                            <label>Change Background Image</label>
-                            <input type="file" id="backgroundUpload" accept="image/*,video/*,.gif" onchange="changeBackgroundImage(this)">
-                            <button class="reset-background-btn" onclick="resetToDefaultBackground()">Reset to Campfire</button>
+                    </div>
+                    
+                    <div class="background-section">
+                        <h4>Audio Track Info</h4>
+                        <div style="font-size: 0.85em; color: #888; line-height: 1.5;">
+                            Add audio files to /audio/ folder in your GitHub repo.<br>
+                            They will appear in the Ambient Sound dropdown.
                         </div>
                     </div>
                     
@@ -1476,6 +1498,15 @@
                 return;
             }
             
+            // Check if it's a custom audio track
+            if (currentMusicType.startsWith('track')) {
+                playCustomAudio(currentMusicType);
+                isMusicPlaying = true;
+                document.getElementById('musicToggle').textContent = '🔇 Stop Sound';
+                return;
+            }
+            
+            // Create appropriate sound
             switch(currentMusicType) {
                 case 'ambient': createAmbientSound(); break;
                 case 'fireplace': createFireplaceSound(); break;
@@ -1485,6 +1516,7 @@
                 case 'cafe': createCafeSound(); break;
             }
             
+            // Fade in
             const volume = document.getElementById('volumeSlider').value / 100;
             audioNodes.forEach((node, index) => {
                 const targetVolume = currentMusicType === 'ambient' 
@@ -1498,6 +1530,14 @@
         }
 
         function stopMusic() {
+            // Stop custom audio if playing
+            if (currentCustomAudio) {
+                currentCustomAudio.pause();
+                currentCustomAudio.currentTime = 0;
+                currentCustomAudio = null;
+            }
+            
+            // Stop Web Audio API sounds
             audioNodes.forEach(node => {
                 node.gainNode.gain.setTargetAtTime(0, audioContext.currentTime, 0.5);
             });
@@ -1510,6 +1550,12 @@
 
         function changeVolume(value) {
             if (isMusicPlaying) {
+                // Adjust custom audio volume
+                if (currentCustomAudio) {
+                    currentCustomAudio.volume = value / 100;
+                }
+                
+                // Adjust Web Audio API volume
                 audioNodes.forEach((node, index) => {
                     const targetVolume = currentMusicType === 'ambient'
                         ? value / 100 * 0.05 * (1 - index * 0.15)
@@ -1547,11 +1593,76 @@
         // ============================================
         // BACKGROUND FUNCTIONS
         // ============================================
+        // Define wallpaper paths (relative to index.html)
+        const wallpaperPaths = {
+            wallpaper1: 'wallpapers/wallpaper1.jpg',
+            wallpaper2: 'wallpapers/wallpaper2.jpg',
+            wallpaper3: 'wallpapers/wallpaper3.gif',
+            wallpaper4: 'wallpapers/wallpaper4.png',
+            wallpaper5: 'wallpapers/wallpaper5.jpg'
+        };
+
+        // Define audio track paths (relative to index.html)
+        const audioTrackPaths = {
+            track1: 'audio/track1.mp3',
+            track2: 'audio/track2.mp3',
+            track3: 'audio/track3.mp3'
+        };
+
+        let currentCustomAudio = null;
+
         function changeBackgroundOpacity(value) {
             const backgroundImg = document.getElementById('backgroundGif');
             backgroundImg.style.opacity = value / 100;
             document.getElementById('opacityDisplay').textContent = value + '%';
             localStorage.setItem('backgroundOpacity', value);
+        }
+
+        function changeWallpaper() {
+            const selected = document.getElementById('wallpaperSelect').value;
+            const backgroundImg = document.getElementById('backgroundGif');
+            
+            if (selected === 'campfire') {
+                // Reset to default campfire
+                isUsingCustomBackground = false;
+                customBackgroundURL = null;
+                updateCampfireGif();
+                localStorage.setItem('selectedWallpaper', 'campfire');
+            } else {
+                // Load wallpaper from GitHub repo
+                const wallpaperPath = wallpaperPaths[selected];
+                if (wallpaperPath) {
+                    backgroundImg.src = wallpaperPath;
+                    isUsingCustomBackground = true;
+                    customBackgroundURL = wallpaperPath;
+                    localStorage.setItem('selectedWallpaper', selected);
+                }
+            }
+        }
+
+        function playCustomAudio(trackName) {
+            stopAllAudio();
+            
+            const audioPath = audioTrackPaths[trackName];
+            if (!audioPath) {
+                console.error('Audio track not found:', trackName);
+                return;
+            }
+            
+            // Stop any existing custom audio
+            if (currentCustomAudio) {
+                currentCustomAudio.pause();
+                currentCustomAudio = null;
+            }
+            
+            // Create and play HTML5 audio
+            currentCustomAudio = new Audio(audioPath);
+            currentCustomAudio.loop = true;
+            currentCustomAudio.volume = document.getElementById('volumeSlider').value / 100;
+            currentCustomAudio.play().catch(err => {
+                console.error('Error playing audio:', err);
+                alert('Could not load audio file. Make sure ' + audioPath + ' exists in your GitHub repo.');
+            });
         }
 
         function changeBackgroundImage(input) {
@@ -1942,11 +2053,16 @@
                 sessions = JSON.parse(savedSessions);
             }
 
-            const savedBackground = localStorage.getItem('customBackground');
-            if (savedBackground) {
-                isUsingCustomBackground = true;
-                customBackgroundURL = savedBackground;
-                document.getElementById('backgroundGif').src = savedBackground;
+            // Load selected wallpaper
+            const selectedWallpaper = localStorage.getItem('selectedWallpaper');
+            if (selectedWallpaper && selectedWallpaper !== 'campfire') {
+                document.getElementById('wallpaperSelect').value = selectedWallpaper;
+                const wallpaperPath = wallpaperPaths[selectedWallpaper];
+                if (wallpaperPath) {
+                    document.getElementById('backgroundGif').src = wallpaperPath;
+                    isUsingCustomBackground = true;
+                    customBackgroundURL = wallpaperPath;
+                }
             }
 
             const savedOpacity = localStorage.getItem('backgroundOpacity');
