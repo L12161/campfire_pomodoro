@@ -739,6 +739,57 @@
         let currentSessionStartTime = null;
 
         let sessions = [];
+        // ============================================
+        // WEB WORKER & NOTIFICATION SETUP
+        // ============================================
+        
+        // 1. Create a "fake" file for the worker code
+        const workerBlob = new Blob([`
+            let intervalId;
+            self.onmessage = function(e) {
+                if (e.data === 'start') {
+                    // Run exactly every second
+                    intervalId = setInterval(() => {
+                        postMessage('tick');
+                    }, 1000);
+                } else if (e.data === 'stop') {
+                    clearInterval(intervalId);
+                }
+            };
+        `], { type: "text/javascript" });
+        
+        // 2. Initialize the worker
+        const timerWorker = new Worker(URL.createObjectURL(workerBlob));
+        
+        // 3. Handle the "tick" from the background worker
+        timerWorker.onmessage = function(e) {
+            if (e.data === 'tick') {
+                // Calculate the real time remaining
+                const now = Date.now();
+                const difference = targetEndTime - now;
+                
+                // Update the main variable
+                timeLeft = Math.ceil(difference / 1000);
+        
+                // Update visuals
+                updateDisplay();
+                document.title = `(${formatTime(timeLeft)}) Campfire Pomodoro`;
+        
+                // CHECK IF DONE (This now runs even in background!)
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    // Stop the worker immediately so it doesn't keep ticking
+                    timerWorker.postMessage('stop');
+                    document.title = "Time's Up! - Campfire Pomodoro";
+                    completeSession();
+                }
+            }
+        };
+        
+        // 4. Request Permission for System Notifications
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
 
         let isUsingCustomBackground = false;
         let customBackgroundURL = null;
@@ -1319,28 +1370,41 @@
         // ============================================
         // TIMER FUNCTIONS
         // ============================================
+        let targetEndTime = null; // Ensure this exists
+
         function startTimer() {
             if (!isRunning) {
+                // Ask for notification permission if not granted yet
+                if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+                    Notification.requestPermission();
+                }
+        
                 isRunning = true;
-                currentSessionStartTime = new Date();
+                
+                if (!currentSessionStartTime) {
+                    currentSessionStartTime = new Date();
+                }
+                
+                // Calculate target time
+                targetEndTime = Date.now() + (timeLeft * 1000);
+                
                 document.getElementById('startBtn').disabled = true;
                 document.getElementById('pauseBtn').disabled = false;
                 
-                timerInterval = setInterval(() => {
-                    timeLeft--;
-                    updateDisplay();
-                    
-                    if (timeLeft <= 0) {
-                        completeSession();
-                    }
-                }, 1000);
+                // TELL THE WORKER TO START TICKING
+                timerWorker.postMessage('start');
             }
         }
-
+        
         function pauseTimer() {
             if (isRunning) {
                 isRunning = false;
-                clearInterval(timerInterval);
+                
+                // TELL THE WORKER TO STOP
+                timerWorker.postMessage('stop');
+                
+                document.title = "Paused - Campfire Pomodoro";
+                
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('pauseBtn').disabled = true;
                 
@@ -1351,10 +1415,14 @@
                 }
             }
         }
-
+        
+        // Update resetTimer to stop the worker too
         function resetTimer() {
-            pauseTimer();
+            // Stop the worker
+            timerWorker.postMessage('stop');
+            isRunning = false;
             
+            // ... rest of your existing reset logic ...
             if (isWorkSession) {
                 timeLeft = workDuration * 60;
                 totalTime = workDuration * 60;
@@ -1364,15 +1432,31 @@
                 totalTime = timeLeft;
             }
             
+            document.title = "Campfire Pomodoro";
             updateDisplay();
             document.getElementById('startBtn').disabled = false;
             document.getElementById('pauseBtn').disabled = true;
         }
 
         function completeSession() {
-            pauseTimer();
-            
+        // 1. Stop the worker logic
+            timerWorker.postMessage('stop'); 
+            isRunning = false; // Manually set this false as we bypassed pauseTimer
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+        
+            // 2. Play Sound
             createNotificationSound();
+        
+            // 3. SHOW SYSTEM NOTIFICATION
+            if (Notification.permission === "granted") {
+                const title = isWorkSession ? "Work Session Complete!" : "Break Over!";
+                const body = isWorkSession ? "Take a break by the fire." : "Time to get back to work!";
+                new Notification(title, {
+                    body: body,
+                    icon: "https://emojicdn.elk.sh/🔥" // You can replace this with a path to an image file
+                });
+            }
             
             if (currentSessionStartTime) {
                 const sessionType = document.getElementById('sessionType').textContent;
