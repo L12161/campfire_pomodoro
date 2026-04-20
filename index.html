@@ -1081,9 +1081,11 @@ function onComplete(){
     checkStreak();
     ss('fos_today',statToday); ss('fos_minutes',statMinutes); ss('fos_total',statTotal);
     renderStats();
-    drawChart();
   }
+  // advance() (which logs the entry) must run BEFORE drawChart()
+  // so a chart rendering error can never block the log update
   advance();
+  try { drawChart(); } catch(e) { console.warn('Chart draw failed:', e); }
 }
 
 function flashAlarm(){
@@ -1194,6 +1196,23 @@ function updateWeekly(){
 /* ═══════════════════════════════════════════════════════
    ANALYTICS CHART
 ═══════════════════════════════════════════════════════ */
+// Cross-browser rounded rect — ctx2d.roundRect() was only added in
+// Chrome 99 / Firefox 112 / Safari 15.4 and throws on older engines.
+function rrect(ctx2d, x, y, w, h, r) {
+  r = Math.min(r, w/2, Math.max(h/2, 0.01));
+  ctx2d.beginPath();
+  ctx2d.moveTo(x+r, y);
+  ctx2d.lineTo(x+w-r, y);
+  ctx2d.arcTo(x+w, y, x+w, y+r, r);
+  ctx2d.lineTo(x+w, y+h-r);
+  ctx2d.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx2d.lineTo(x+r, y+h);
+  ctx2d.arcTo(x, y+h, x, y+h-r, r);
+  ctx2d.lineTo(x, y+r);
+  ctx2d.arcTo(x, y, x+r, y, r);
+  ctx2d.closePath();
+}
+
 function drawChart(){
   const canvas=$('analyticsCanvas');
   const ctx2d=canvas.getContext('2d');
@@ -1235,8 +1254,7 @@ function drawChart(){
       grad.addColorStop(1,'transparent');
       ctx2d.fillStyle=grad;
       ctx2d.globalAlpha=isToday?.9:.45;
-      ctx2d.beginPath();
-      ctx2d.roundRect(x,y,barW,barH,3);
+      rrect(ctx2d,x,y,barW,barH,3);
       ctx2d.fill();
       ctx2d.globalAlpha=1;
 
@@ -1244,11 +1262,11 @@ function drawChart(){
       ctx2d.shadowColor=neonRgb;
       ctx2d.shadowBlur=isToday?12:6;
       ctx2d.fillStyle='transparent';
-      ctx2d.beginPath();ctx2d.roundRect(x,y,barW,barH,3);ctx2d.fill();
+      rrect(ctx2d,x,y,barW,barH,3);ctx2d.fill();
       ctx2d.shadowBlur=0;
     } else {
       ctx2d.fillStyle='rgba(255,255,255,0.05)';
-      ctx2d.beginPath();ctx2d.roundRect(x,pad.t+chartH-2,barW,2,1);ctx2d.fill();
+      rrect(ctx2d,x,pad.t+chartH-2,barW,2,1);ctx2d.fill();
     }
 
     // day label
